@@ -6,7 +6,8 @@ export default class EmojiMap {
         this.renderSize = 10;
 
         if (emojiPalette) {
-            this.palette = this.filterNonRenderableEmojis(emojiPalette);
+            this.palette = emojiPalette;
+            // this.palette = this.filterNonRenderableEmojis(emojiPalette);
             this.emojiToColor = this.createEmojiToColorMap(this.palette);
             this.colorToEmoji = this.createColorToEmojiMap(this.emojiToColor);
         }
@@ -33,13 +34,8 @@ export default class EmojiMap {
             canvas.width = 20;
             canvas.height = 20;
             context.font = `${this.renderSize}px Arial`;
-            let width = context.measureText(emoji).width;
-            //Todo filter based on color too, if width is low but it is colored then it's ok
-            if (width > this.renderSize * 0.9)
-                result += emoji;
-            else {
-                console.log("Filtering out:", emoji, width);
-            }
+            context.fillStyle = `rgb(23, 129, 238)`;
+            context.fillText(emoji, 0, 0);
         }
 
         return result;
@@ -54,23 +50,49 @@ export default class EmojiMap {
         canvas.height = Math.round(this.renderSize * 1.4) - 3;
         canvas.style.width = '200px';
         canvas.style.height = '200px';
-        // document.body.appendChild(canvas);
+        if (false) {
+            document.body.appendChild(canvas);
+            canvas.style.position = 'fixed';
+            canvas.style.top = '0';
+            canvas.style.left = '0';
+        }
         context.font = `${this.renderSize}px Arial`;
-        context.fillStyle = 'white';
+        let filterColor = [23, 129, 238];
+        context.fillStyle = `rgb(${filterColor})`;
         for (let emoji of emojis) {
+            // let emoji = '🇦🇫';
             context.clearRect(0, 0, canvas.width, canvas.height);
-            context.fillText(emoji, -1, this.renderSize - 1);
+            context.fillText(emoji, 0, this.renderSize);
             let data = context.getImageData(0, 0, canvas.width, canvas.height);
             let totals = [0, 0, 0];
+            //If fully colored pixels are exactly of the fillStyle color, then it's not an emoji, it's text (not properly rendered)
+            let filterTotals = [0, 0, 0];
+            let filterN = 0;
             for (let i = 0; i < data.data.length; i += 4) {
-                let [r, g, b] = data.data.slice(i, i + 3);
+                let [r, g, b, a] = data.data.slice(i, i + 4);
                 let color = LabConvert.rgbToLab(r, g, b);
-                totals[0] += color[0];
-                totals[1] += color[1];
-                totals[2] += color[2];
+
+                a /= 255;
+                totals[0] += color[0] * a;
+                totals[1] += color[1] * a;
+                totals[2] += color[2] * a;
+
+                if (a > 0.5) {
+                    filterN++;
+                    filterTotals[0] += r;
+                    filterTotals[1] += g;
+                    filterTotals[2] += b;
+                }
             }
             let n = data.data.length / 4;
             let avg = [totals[0] / n, totals[1] / n, totals[2] / n];
+
+            let filterAvg = [filterTotals[0] / filterN, filterTotals[1] / filterN, filterTotals[2] / filterN];
+            if (Math.abs(filterAvg[0] - filterColor[0]) < 1.5 && Math.abs(filterAvg[1] - filterColor[1]) < 1.5 && Math.abs(filterAvg[2] - filterColor[2]) < 1.5) {
+                console.log("Filtered out", emoji);
+                continue;
+            }
+
             map[emoji] = avg;
         }
         return map;
