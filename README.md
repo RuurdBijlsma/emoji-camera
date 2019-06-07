@@ -11,7 +11,7 @@ Resolution is expressed as a single number, which indicates the amount of emojis
 ![Emojified image](gh-img/low-high.png)
 ### Emoji palette
 The emojis used can be restricted, in the below image only flags are used (left) or only ok hands (right).
-![Emojified image](gh-img/low-high.png)
+![Emojified image](gh-img/palette.png)
 
 
 ## Project setup
